@@ -2,3 +2,4 @@ node_modules/
 API.txt
 .env
 discord_social_sdk/
+native/build/
