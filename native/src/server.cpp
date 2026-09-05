@@ -54,6 +54,9 @@ std::thread startServer(int port, UpdateQueue& queue) {
         if (body.contains("durationSeconds") && !body.at("durationSeconds").is_null()) {
             update.durationSeconds = body.at("durationSeconds").get<int64_t>();
         }
+        if (body.contains("paused") && !body.at("paused").is_null()) {
+            update.paused = body.at("paused").get<bool>();
+        }
 
         queue.push(std::move(update));
         res.status = 204;

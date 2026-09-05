@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -58,6 +59,7 @@ int main() {
 
     std::optional<int64_t> lastTrackId;
     std::optional<int64_t> lastStartTimestampMs;
+    bool lastPaused = false;
     auto lastActivityAt = std::chrono::steady_clock::now();
     bool cleared = true;
 
@@ -79,7 +81,8 @@ int main() {
 
             bool forceResend = needsResend.exchange(false);
             bool unchanged = lastTrackId == update->trackId &&
-              lastStartTimestampMs == update->startTimestampMs;
+              lastStartTimestampMs == update->startTimestampMs &&
+              lastPaused == update->paused;
 
             if (unchanged && !forceResend) {
                 continue;
@@ -87,8 +90,10 @@ int main() {
 
             lastTrackId = update->trackId;
             lastStartTimestampMs = update->startTimestampMs;
+            lastPaused = update->paused;
 
             std::cout << "[server] now playing: " << update->title << " — " << update->artist
+                       << (update->paused ? " (paused)" : "")
                        << (forceResend ? " (forced resend after reconnect)" : "") << "\n";
 
             zzrpc::setNowPlaying(client, {
@@ -98,6 +103,7 @@ int main() {
                                           update->imageUrl,
                                           update->durationSeconds,
                                           update->startTimestampMs,
+                                          update->paused,
                                         });
         }
 
@@ -107,6 +113,7 @@ int main() {
             zzrpc::clearPresence(client);
             lastTrackId.reset();
             lastStartTimestampMs.reset();
+            lastPaused = false;
             cleared = true;
         }
 

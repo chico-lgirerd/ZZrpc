@@ -14,6 +14,7 @@ struct NowPlaying {
     std::optional<std::string> imageUrl;
     std::optional<int64_t> durationSeconds;
     int64_t startTimestampMs;
+    bool paused = false;
 };
 
 void setNowPlaying(discordpp::Client& client, const NowPlaying& track);

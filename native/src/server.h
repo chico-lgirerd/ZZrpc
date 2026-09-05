@@ -17,6 +17,7 @@ struct IncomingUpdate {
     std::optional<std::string> imageUrl;
     std::optional<int64_t> durationSeconds;
     int64_t startTimestampMs;
+    bool paused = false;
 };
 
 // http thread pushes here, main loop pops, keeps the discord client single-threaded

@@ -72,6 +72,19 @@
 
   const SEEK_THRESHOLD_MS = 4000; // below this it's just normal drift, not an actual seek
 
+  // the transport play/pause toggle sits a couple ancestors above the mute button,
+  // separate from the map's own "Play" overlay which has the same aria-label
+  function isPaused() {
+    const mute = document.querySelector('button[aria-label="Mute"], button[aria-label="Unmute"]');
+    let el = mute;
+    for (let i = 0; i < 4 && el; i++) {
+      const playBtn = el.querySelector('button[aria-label="Play"], button[aria-label="Pause"]');
+      if (playBtn) return playBtn.getAttribute("aria-label") === "Play";
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   async function checkAndReport() {
     const match = location.pathname.match(URL_RE);
     if (!match) return;
@@ -120,18 +133,25 @@
 
     if (!lastMeta) return;
 
-    const positionSeconds = getPlaybackPositionSeconds();
+    const paused = isPaused();
     const now = Date.now();
-    const computedStart =
-      positionSeconds != null ? now - positionSeconds * 1000 : lastSentStart ?? now;
 
-    const isRealChange =
-      lastSentStart == null || Math.abs(computedStart - lastSentStart) >= SEEK_THRESHOLD_MS;
+    let startTimestamp;
+    if (paused) {
+      // don't recompute from position while paused, the site freezes it but Date.now() keeps
+      // moving, which would look like drift and yank the timestamp forward every poll
+      startTimestamp = lastSentStart ?? now;
+    } else {
+      const positionSeconds = getPlaybackPositionSeconds();
+      const computedStart =
+        positionSeconds != null ? now - positionSeconds * 1000 : lastSentStart ?? now;
+      const isRealChange =
+        lastSentStart == null || Math.abs(computedStart - lastSentStart) >= SEEK_THRESHOLD_MS;
+      startTimestamp = isRealChange ? computedStart : lastSentStart;
+      if (isRealChange) lastSentStart = startTimestamp;
+    }
 
-    const startTimestamp = isRealChange ? computedStart : lastSentStart;
-    if (isRealChange) lastSentStart = startTimestamp;
-
-    gmPost(BRIDGE_URL, { trackId, ...lastMeta, startTimestamp }).catch((err) =>
+    gmPost(BRIDGE_URL, { trackId, ...lastMeta, startTimestamp, paused }).catch((err) =>
       console.error("[zzrpc] send failed:", err)
     );
   }
