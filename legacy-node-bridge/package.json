@@ -1,0 +1,16 @@
+{
+  "name": "zzrpc-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local bridge: receives now-playing POSTs from the zig-zag.fm userscript, forwards them to Discord as Rich Presence over local IPC.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.2.0",
+    "discord-api-types": "^0.38.55",
+    "dotenv": "^16.4.5"
+  }
+}
