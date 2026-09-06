@@ -42,6 +42,15 @@ target_include_directories(zzrpc PRIVATE ${DISCORD_SDK_INCLUDE_DIR})
 target_link_libraries(zzrpc PRIVATE httplib::httplib nlohmann_json::nlohmann_json "${DISCORD_SDK_LIB}")
 
 set_target_properties(zzrpc PROPERTIES
-  INSTALL_RPATH "${DISCORD_SDK_ROOT}/lib/release"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/dist"
+  # $ORIGIN = the binary's own directory at runtime, not this machine's absolute SDK path.
+  # BUILD_WITH_INSTALL_RPATH TRUE bakes that in immediately (not just on `cmake --install`),
+  # so the dist/ folder is relocatable straight out of the build, no root/install step needed.
+  INSTALL_RPATH "$ORIGIN"
   BUILD_WITH_INSTALL_RPATH TRUE
+)
+
+# copies the .so next to the binary so dist/ is self-contained and can be moved/zipped as-is
+add_custom_command(TARGET zzrpc POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy "${DISCORD_SDK_LIB}" "${CMAKE_BINARY_DIR}/dist/"
 )

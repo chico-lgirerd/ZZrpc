@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ZZrpc — Privacy Policy</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #222; }
+  h1, h2 { color: #111; }
+  code { background: #f2f2f2; padding: 0.1rem 0.3rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<h1>Privacy Policy — ZZrpc</h1>
+<p><em>Last updated: [DATE]</em></p>
+
+<p>ZZrpc is a small, personal tool that shows the zig-zag.fm track you're
+currently listening to as your Discord Rich Presence. It has no backend
+server operated by the developer, no analytics, and no telemetry. This
+policy explains exactly what data the app touches and why.</p>
+
+<h2>What ZZrpc reads</h2>
+<ul>
+  <li><strong>The current track's public metadata</strong> (title, artist,
+  album, cover art URL, duration) — looked up from zig-zag.fm's own public
+  API, using the same login session your browser already has with
+  zig-zag.fm.</li>
+  <li><strong>Whether playback is playing or paused</strong>, and playback
+  position — read from the zig-zag.fm page you already have open, to keep
+  the Discord status accurate.</li>
+</ul>
+
+<h2>What ZZrpc sends, and to whom</h2>
+<ul>
+  <li>The track metadata above is sent from your browser to a program
+  running on <strong>your own computer</strong> (<code>localhost</code>) —
+  it never leaves your machine over the network at this step.</li>
+  <li>That local program sends the track info to <strong>Discord</strong>,
+  using Discord's own Social SDK and your own Discord account, to update
+  your Rich Presence. This is the same kind of data any "currently
+  playing" status shows — visible to people who can already see your
+  Discord status, exactly like a music-app integration would show.</li>
+</ul>
+
+<h2>What ZZrpc stores</h2>
+<ul>
+  <li>A Discord authorization token (access + refresh token), obtained via
+  Discord's own OAuth2 login flow, is stored <strong>locally on your
+  computer</strong> (<code>~/.config/zzrpc/token.txt</code>) so you aren't
+  asked to log in again every time you start the app. It is never sent
+  anywhere except back to Discord's own servers to refresh itself.</li>
+  <li>No other data is stored. There is no database, no account system,
+  and no server operated by the ZZrpc developer that receives or retains
+  any of your data.</li>
+</ul>
+
+<h2>Third parties</h2>
+<p>ZZrpc talks to two services, each governed by its own privacy policy:</p>
+<ul>
+  <li><a href="https://www.zig-zag.fm">zig-zag.fm</a> — for track metadata,
+  using your existing logged-in session in your own browser.</li>
+  <li><a href="https://discord.com/privacy">Discord</a> — for
+  authentication and Rich Presence, using your own Discord account and
+  OAuth2 login.</li>
+</ul>
+<p>The ZZrpc developer does not receive, store, or have access to any data
+exchanged between you, zig-zag.fm, and Discord.</p>
+
+<h2>Deleting your data</h2>
+<p>Since everything ZZrpc stores lives only on your own computer, you can
+delete it yourself at any time:</p>
+<ul>
+  <li>Delete <code>~/.config/zzrpc/token.txt</code> to remove your stored
+  Discord authorization — you'll be asked to log in again next run.</li>
+  <li>Revoke ZZrpc's access from your
+  <a href="https://discord.com/settings/authorized-apps">Discord
+  Authorized Apps settings</a> at any time.</li>
+  <li>Uninstall the userscript from your browser extension (e.g.
+  Tampermonkey) to stop it reading zig-zag.fm data entirely.</li>
+</ul>
+
+<h2>Contact</h2>
+<p>Questions about this policy: <strong>[girerdlouis0@gmail.com]</strong></p>
+
+</body>
+</html>
