@@ -13,7 +13,8 @@ zig-zag.fm tab (Tampermonkey userscript)
    ▼
 native/ (C++, links Discord's Social SDK directly)
    │  authenticates once via Discord OAuth2, then pushes the track to
-   │  Discord as Rich Presence whenever it changes
+   │  Discord as Rich Presence whenever it changes — timer freezes and
+   │  the state shows "(paused)" while zig-zag.fm playback is paused
    ▼
 Discord
 ```
@@ -23,6 +24,13 @@ zig-zag.fm has no public API for this — the userscript talks to the same inter
 ## Setup
 
 ### 1. Register a Discord application for Social SDK access
+
+> **Only needed once, by whoever builds/distributes ZZrpc.**
+> I'm hoping to find a way around this before public release :) 
+> The client ID gets baked into the binary — end users installing a prebuilt release
+> just approve a Discord login prompt against that existing app, using
+> their own account. They never register anything themselves. Building
+> from source? You need your own registered app for local testing.
 
 - Create a Developer Team at https://discord.com/developers/teams if you don't have one
 - Create an application at https://discord.com/developers/applications, assigned to that team
@@ -61,12 +69,16 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j"$(nproc)"
 ```
 
+The binary and its bundled SDK `.so` land together in `build/dist/` (not
+`build/` itself) — that folder is self-contained and relocatable, so it's
+also what gets zipped up for distribution.
+
 ### 5. Run
 
 ```sh
 cd native
 set -a; source ../.env; set +a
-./build/zzrpc
+./build/dist/zzrpc
 ```
 
 First run opens a Discord authorization prompt in your browser — approve it once. The token is cached at `~/.config/zzrpc/token.txt` and reused (refreshed automatically before it expires) on later runs.
@@ -89,8 +101,8 @@ Top to bottom, mapped to where each one comes from:
 | "Listening to zig-zag.fm" | `Activity::SetName` |
 | Large image | `ActivityAssets::SetLargeImage` (track's cover art, or a static fallback) |
 | Track title | `Activity::SetDetails` |
-| Artist | `Activity::SetState` |
-| Elapsed / remaining bar | `ActivityTimestamps::SetStart`/`SetEnd` |
+| Artist (appends "(paused)" when paused) | `Activity::SetState` |
+| Elapsed / remaining bar (frozen while paused) | `ActivityTimestamps::SetStart`/`SetEnd` — omitted entirely when paused |
 | Album (hover on the image) | `ActivityAssets::SetLargeText` |
 
 ## Troubleshooting
@@ -99,6 +111,17 @@ Top to bottom, mapped to where each one comes from:
 - **A cached token gets rejected (`UnexpectedClose`, detail `4004`)** — Discord's gateway "authentication failed" code. If it recurs, delete `~/.config/zzrpc/token.txt` to force a fresh login.
 - **Cover art not showing** — use `ActivityAssets::SetLargeImage` (accepts a key or a real URL), not `SetLargeUrl`, which is an unrelated click-through link on the image.
 - **Userscript does nothing** — check the zig-zag.fm tab's devtools console for `[zzrpc]` warnings, and confirm you're logged into zig-zag.fm (the script reads your session token from `localStorage`).
+
+## Public release / App Verification
+
+`docs/terms.html` and `docs/privacy.html` are ZZrpc's Terms of Service and
+Privacy Policy, written for Discord's **App Verification** process
+(required once the app scales past whatever threshold applies to your
+app — check the App Verification tab on your application in the
+Developer Portal for the live checklist). Host them via GitHub Pages
+(`Settings → Pages → source: main /docs`) and paste the resulting URLs
+into that form, alongside the separate identity-verification step
+Discord runs through Stripe.
 
 ## Legacy version
 
