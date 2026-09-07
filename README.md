@@ -1,4 +1,4 @@
-# [ZZrpc](https://github.com/chico-lgirerd/ZZrpc)
+# [ZZrpc](https://chico-lgirerd.github.io/ZZrpc/)
 
 Shows your currently-playing [zig-zag.fm](https://www.zig-zag.fm) track as Discord Rich Presence — title, artist, album, cover art, and a live elapsed/remaining timer, updating in real time as you browse and listen.
 
