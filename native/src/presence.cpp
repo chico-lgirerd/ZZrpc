@@ -32,6 +32,8 @@ void setNowPlaying(discordpp::Client& client, const NowPlaying& track) {
     assets.SetLargeText(track.album.value_or(track.title));
     activity.SetAssets(std::move(assets));
 
+    // failures here are logged only, not retried — main's dedupe means the next differing track
+    // update (or the periodic idle-clear) will naturally attempt a fresh send anyway
     client.UpdateRichPresence(std::move(activity), [](discordpp::ClientResult result) {
       if (!result.Successful()) {
           std::cerr << "[discord] UpdateRichPresence failed: " << result.ToString() << "\n";

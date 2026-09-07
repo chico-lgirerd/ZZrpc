@@ -2,12 +2,14 @@
 
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 
 namespace zzrpc {
 namespace {
@@ -40,16 +42,22 @@ std::optional<StoredToken> loadToken() {
 
     StoredToken token;
     std::string line;
-    while (std::getline(in, line)) {
-        auto eq = line.find('=');
-        if (eq == std::string::npos) continue;
-        std::string key = line.substr(0, eq);
-        std::string value = line.substr(eq + 1);
-        if (key == "access_token") token.accessToken = value;
-        else if (key == "refresh_token") token.refreshToken = value;
-        else if (key == "expires_at") token.expiresAt = std::stoll(value);
-        else if (key == "token_type")
-            token.tokenType = static_cast<discordpp::AuthorizationTokenType>(std::stoi(value));
+    try {
+        while (std::getline(in, line)) {
+            auto eq = line.find('=');
+            if (eq == std::string::npos) continue;
+            std::string key = line.substr(0, eq);
+            std::string value = line.substr(eq + 1);
+            if (key == "access_token") token.accessToken = value;
+            else if (key == "refresh_token") token.refreshToken = value;
+            else if (key == "expires_at") token.expiresAt = std::stoll(value);
+            else if (key == "token_type")
+                token.tokenType = static_cast<discordpp::AuthorizationTokenType>(std::stoi(value));
+        }
+    } catch (const std::exception&) {
+        // corrupted/hand-edited token file — treat like "no cached token" instead of crashing
+        std::cerr << "[auth] cached token file is unreadable, requesting a fresh login\n";
+        return std::nullopt;
     }
 
     if (token.accessToken.empty() || token.refreshToken.empty()) return std::nullopt;
@@ -59,9 +67,12 @@ std::optional<StoredToken> loadToken() {
 void saveToken(const StoredToken& token) {
     std::string path = tokenFilePath();
     std::string dir = path.substr(0, path.find_last_of('/'));
-    std::system(("mkdir -p '" + dir + "'").c_str());
+    std::filesystem::create_directories(dir);
+    ::chmod(dir.c_str(), 0700);
 
     std::ofstream out(path, std::ios::trunc);
+    // token file holds live Discord credentials, lock it down before writing anything into it
+    ::chmod(path.c_str(), 0600);
     out << "access_token=" << token.accessToken << "\n";
     out << "refresh_token=" << token.refreshToken << "\n";
     out << "expires_at=" << token.expiresAt << "\n";

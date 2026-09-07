@@ -1,5 +1,6 @@
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -17,6 +18,9 @@ namespace {
 constexpr auto kIdleClearAfter = std::chrono::minutes(5);
 constexpr auto kLoopInterval = std::chrono::milliseconds(16);
 
+std::atomic<bool> gShuttingDown{false};
+void handleShutdownSignal(int) { gShuttingDown = true; }
+
 } // namespace
 
 int main() {
@@ -26,12 +30,27 @@ int main() {
                      "(e.g. `set -a; source ../.env; set +a` before running this binary)\n";
         return 1;
     }
-    uint64_t clientId = std::stoull(clientIdEnv);
+    uint64_t clientId;
+    try {
+        clientId = std::stoull(clientIdEnv);
+    } catch (const std::exception&) {
+        std::cerr << "Invalid DISCORD_CLIENT_ID (\"" << clientIdEnv
+                   << "\") — expected the numeric ID from the Developer Portal\n";
+        return 1;
+    }
 
     int port = 4848;
     if (const char* portEnv = std::getenv("PORT")) {
-        port = std::stoi(portEnv);
+        try {
+            port = std::stoi(portEnv);
+        } catch (const std::exception&) {
+            std::cerr << "Invalid PORT (\"" << portEnv << "\") — expected a number\n";
+            return 1;
+        }
     }
+
+    std::signal(SIGINT, handleShutdownSignal);
+    std::signal(SIGTERM, handleShutdownSignal);
 
     discordpp::Client client;
 
@@ -54,7 +73,7 @@ int main() {
       });
 
     zzrpc::UpdateQueue queue;
-    std::thread serverThread;
+    zzrpc::ServerHandle serverHandle;
     bool serverStarted = false;
 
     std::optional<int64_t> lastTrackId;
@@ -66,11 +85,11 @@ int main() {
     zzrpc::ensureAuthorized(client, clientId, [&]() {
       if (!serverStarted) {
           serverStarted = true;
-          serverThread = zzrpc::startServer(port, queue);
+          serverHandle = zzrpc::startServer(port, queue);
       }
     });
 
-    while (true) {
+    while (!gShuttingDown) {
         discordpp::RunCallbacks();
 
         while (ready) {
@@ -119,4 +138,11 @@ int main() {
 
         std::this_thread::sleep_for(kLoopInterval);
     }
+
+    std::cout << "[main] shutting down...\n";
+    if (serverStarted) {
+        serverHandle.stop();
+        if (serverHandle.thread.joinable()) serverHandle.thread.join();
+    }
+    return 0;
 }

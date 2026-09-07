@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <queue>
@@ -31,6 +32,12 @@ private:
     std::queue<IncomingUpdate> queue_;
 };
 
-std::thread startServer(int port, UpdateQueue& queue);
+// stop() is safe to call once from outside the server's own thread; join the thread afterward
+struct ServerHandle {
+    std::thread thread;
+    std::function<void()> stop;
+};
+
+ServerHandle startServer(int port, UpdateQueue& queue);
 
 } // namespace zzrpc
