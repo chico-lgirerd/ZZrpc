@@ -49,7 +49,9 @@ cd native
 - Sidebar → **Downloads**, grab the latest **C++** package
 - Extract it into `native/discord_social_sdk/` so you end up with:
   - `native/discord_social_sdk/include/discordpp.h`
-  - `native/discord_social_sdk/lib/release/libdiscord_partner_sdk.so`
+  - `native/discord_social_sdk/lib/release/libdiscord_partner_sdk.so` (Linux) or
+    `native/discord_social_sdk/lib/release/libdiscord_partner_sdk.dylib` (macOS) — the
+    C++ package ships both; CMake picks the right one for your platform automatically
 
 ### 3. Configure
 
@@ -66,8 +68,11 @@ Needs a C++20 compiler and CMake ≥ 3.16 — `cpp-httplib` and `nlohmann/json` 
 ```sh
 cd native
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j"$(nproc)"
+cmake --build build -j
 ```
+
+(`-j` with no number lets the generator pick a sensible parallelism; on Linux
+you can pin it with `-j"$(nproc)"`, on macOS `-j"$(sysctl -n hw.ncpu)"`.)
 
 The binary and its bundled SDK `.so` land together in `build/dist/` (not
 `build/` itself) — that folder is self-contained and relocatable, so it's

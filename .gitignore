@@ -3,3 +3,4 @@ API.txt
 .env
 discord_social_sdk/
 native/build/
+.DS_Store
