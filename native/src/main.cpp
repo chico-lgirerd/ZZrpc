@@ -79,8 +79,21 @@ int main() {
     std::optional<int64_t> lastTrackId;
     std::optional<int64_t> lastStartTimestampMs;
     bool lastPaused = false;
+    std::optional<zzrpc::IncomingUpdate> lastUpdate; // full payload, replayed after a reconnect
     auto lastActivityAt = std::chrono::steady_clock::now();
     bool cleared = true;
+
+    auto sendPresence = [&client](const zzrpc::IncomingUpdate& u) {
+        zzrpc::setNowPlaying(client, {
+                                       u.title,
+                                       u.artist,
+                                       u.album,
+                                       u.imageUrl,
+                                       u.durationSeconds,
+                                       u.startTimestampMs,
+                                       u.paused,
+                                     });
+    };
 
     zzrpc::ensureAuthorized(client, clientId, [&]() {
       if (!serverStarted) {
@@ -110,20 +123,20 @@ int main() {
             lastTrackId = update->trackId;
             lastStartTimestampMs = update->startTimestampMs;
             lastPaused = update->paused;
+            lastUpdate = *update;
 
             std::cout << "[server] now playing: " << update->title << " — " << update->artist
                        << (update->paused ? " (paused)" : "")
                        << (forceResend ? " (forced resend after reconnect)" : "") << "\n";
 
-            zzrpc::setNowPlaying(client, {
-                                          update->title,
-                                          update->artist,
-                                          update->album,
-                                          update->imageUrl,
-                                          update->durationSeconds,
-                                          update->startTimestampMs,
-                                          update->paused,
-                                        });
+            sendPresence(*update);
+        }
+
+        // reconnected while a track was still showing and the drain loop above popped nothing to
+        // carry the resend — replay the last payload so presence returns without a track change
+        if (ready && !cleared && lastUpdate && needsResend.exchange(false)) {
+            std::cout << "[server] re-sending presence after reconnect\n";
+            sendPresence(*lastUpdate);
         }
 
         // nothing posted in a while, probably tab closed or paused
@@ -133,6 +146,7 @@ int main() {
             lastTrackId.reset();
             lastStartTimestampMs.reset();
             lastPaused = false;
+            lastUpdate.reset();
             cleared = true;
         }
 
